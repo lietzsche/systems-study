@@ -42,7 +42,10 @@
 ## 저장소 관리 상태
 
 - 새 커리큘럼 전환 완료
-- 기존 네트워크 전용 module과 설치 script 제거 완료
-- dev container와 Dependabot 설정 유지
+- 기존 네트워크 전용 module 제거 완료
+- 새 시스템 커리큘럼용 Ubuntu 설치·검증 script 구성
+- dev container의 `postCreateCommand`에 환경 설치와 검증 연결
+- Dependabot 설정 유지
 - 저장소 remote 이름은 사용자가 별도로 `systems-study`로 변경 예정
 - 전환 commit 검증 및 push 완료
+- 환경 설치·검증 script 실행 및 dev container 연동 검증 완료

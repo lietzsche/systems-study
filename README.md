@@ -36,6 +36,19 @@ Compiler, Performance, ML/LLM Systems는 선택 심화 track으로 둡니다.
 
 상세한 module 순서와 질문은 `CURRICULUM.md`에 기록합니다. 현재 위치와 실제 관찰 결과는 `PROGRESS.md`에서 에이전트가 관리합니다.
 
+## 환경 준비
+
+기준 환경은 Ubuntu 24.04 dev container입니다. VS Code에서 저장소를 dev container로 처음 열면 `postCreateCommand`가 다음 스크립트를 자동으로 실행합니다.
+
+```bash
+bash scripts/setup-ubuntu.sh
+bash scripts/verify-environment.sh
+```
+
+Ubuntu 24.04 host에서 직접 실행할 수도 있습니다. 설치 스크립트는 여러 번 실행할 수 있으며 공통 환경인 Python, OpenJDK 21, `strace`, `lsof`, C compiler 및 기본 네트워크 관찰 도구를 설치합니다. 실제 version과 사용 가능한 명령은 검증 스크립트가 확인합니다.
+
+Node.js와 Rust toolchain은 처음 사용하는 phase에서 version을 정해 별도 setup으로 추가합니다. 각 lab의 추가 dependency도 해당 lab 안에서 관리하며, 전역 설치 스크립트에는 전체 선택 track의 언어, library와 framework를 미리 넣지 않습니다.
+
 ## 진행 방식
 
 이 저장소는 문서를 혼자 순서대로 읽는 교재가 아니라 Codex와 대화하며 진행하는 실험 과정입니다.
