@@ -42,8 +42,9 @@ Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, sl
 
 ### 필수 작업
 
-- [ ] 저장소 및 모듈 디렉터리 구조 생성
-- [ ] Java 버전과 컴파일/실행 절차 확인
+- [x] 저장소 및 Module 00 디렉터리 구조 생성
+- [x] WSL 2 / Ubuntu 24.04용 설치 및 환경 검증 스크립트 작성
+- [ ] 실제 학습 환경에서 Java 21 설치와 컴파일/실행 절차 확인
 - [ ] Git 원격 저장소와 브랜치 확인
 - [ ] `curl` 및/또는 `nc` 사용 가능 여부 확인
 - [ ] `ss`/`netstat` 사용 가능 여부 확인
@@ -57,7 +58,9 @@ Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, sl
 
 ### 관찰 결과
 
-_모듈을 진행하며 여기에 내용을 기록합니다._
+- `scripts/setup-ubuntu.sh`가 OpenJDK 21과 기본 네트워크 관찰 도구를 설치하도록 준비했습니다.
+- `scripts/verify-environment.sh`가 WSL 2, Ubuntu 24.04, Java 21, 필수 명령, interface와 route를 검사하도록 준비했습니다.
+- 실제 설치 결과와 TCP packet 관찰은 아직 수행하지 않았습니다.
 
 ---
 

@@ -12,6 +12,17 @@ Java로 학습을 시작한 뒤, 일부 주제를 TypeScript/Node.js와 Rust로 
 
 모듈 README와 `PROGRESS.md` 정리, 검증, commit, push는 Codex가 담당합니다. 이 저장소의 문서는 학습자에게 부과되는 읽기 과제가 아니라, 학습 기록과 대화의 연속성을 보존하기 위한 자료입니다.
 
+## 처음 시작하기
+
+기준 학습 환경은 WSL 2의 Ubuntu 24.04와 OpenJDK 21입니다. WSL Ubuntu에서 다음 명령으로 필요한 Java 및 네트워크 관찰 도구를 설치하고 검증할 수 있습니다.
+
+```bash
+./scripts/setup-ubuntu.sh
+./scripts/verify-environment.sh
+```
+
+WSL 설치부터 VS Code 연결까지의 안내와 설치 도구 목록은 `modules/00-environment/README.md`에 기록되어 있습니다.
+
 ## 이 저장소를 만든 이유
 
 고수준 프레임워크를 사용하면 네트워크 프로그래밍을 효율적으로 할 수 있지만, 중요한 세부 동작이 가려지기도 합니다. 이 프로젝트는 소켓과 바이트에 가까운 수준에서 시작하여 TCP 스트림, 프레이밍, UDP 데이터그램, HTTP, DNS, TLS, 논블로킹 I/O, 백프레셔를 직접 관찰하는 것을 목표로 합니다.
