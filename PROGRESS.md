@@ -2,11 +2,11 @@
 
 ## 현재 상태
 
-**상태:** 계획 단계 / 시작 전
+**상태:** Module 00 완료 / Module 01 시작 준비
 
-**현재 단계:** Phase 0 — 환경 및 관찰 도구
+**현재 단계:** Phase 1 — Java Blocking I/O로 배우는 TCP 기초
 
-**현재 모듈:** Module 00 — 저장소 및 패킷 분석 환경 설정
+**현재 모듈:** Module 01 — TCP Echo Server
 
 **주 구현 언어:** Java
 
@@ -24,7 +24,7 @@ Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, sl
 
 ## 완료한 모듈
 
-아직 없음.
+- Module 00 — 저장소 및 패킷 분석 환경 설정
 
 ---
 
@@ -44,23 +44,31 @@ Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, sl
 
 - [x] 저장소 및 Module 00 디렉터리 구조 생성
 - [x] WSL 2 / Ubuntu 24.04용 설치 및 환경 검증 스크립트 작성
-- [ ] 실제 학습 환경에서 Java 21 설치와 컴파일/실행 절차 확인
-- [ ] Git 원격 저장소와 브랜치 확인
-- [ ] `curl` 및/또는 `nc` 사용 가능 여부 확인
-- [ ] `ss`/`netstat` 사용 가능 여부 확인
-- [ ] Wireshark 또는 tcpdump 사용 가능 여부 확인
-- [ ] 간단한 TCP 연결 하나 캡처
-- [ ] 출발지 IP, 목적지 IP, 출발지 port, 목적지 port 식별
-- [ ] 캡처에서 SYN, SYN-ACK, ACK 식별
-- [ ] 아래에 관찰 결과 기록
-- [ ] Module 00 완료 표시
-- [ ] 완료한 모듈 커밋 및 push
+- [x] 실제 학습 환경에서 Java 21 컴파일 및 실행 확인
+- [x] Git 원격 저장소와 브랜치 확인
+- [x] `curl` 및 `nc` 사용 가능 여부 확인
+- [x] `ss`/`netstat` 사용 가능 여부 확인
+- [x] tcpdump 사용 가능 여부 확인
+- [x] 간단한 TCP 연결 하나 캡처
+- [x] 출발지 IP, 목적지 IP, 출발지 port, 목적지 port 식별
+- [x] 캡처에서 SYN, SYN-ACK, ACK 식별
+- [x] 아래에 관찰 결과 기록
+- [x] Module 00 완료 표시
+- [x] 완료한 모듈 커밋 및 push
 
 ### 관찰 결과
 
 - `scripts/setup-ubuntu.sh`가 OpenJDK 21과 기본 네트워크 관찰 도구를 설치하도록 준비했습니다.
 - `scripts/verify-environment.sh`가 WSL 2, Ubuntu 24.04, Java 21, 필수 명령, interface와 route를 검사하도록 준비했습니다.
-- 실제 설치 결과와 TCP packet 관찰은 아직 수행하지 않았습니다.
+- dev container에서 OpenJDK 21.0.12와 필수 네트워크 명령이 모두 확인되었습니다.
+- 현재 관찰된 interface는 loopback `lo`와 컨테이너 Ethernet interface `eth0`이며, `eth0`의 IPv4 주소는 `172.17.0.2/16`입니다.
+- default route는 `eth0`을 통해 gateway `172.17.0.1`로 향합니다.
+- WSL 2 커널을 공유하더라도 dev container는 별도의 network namespace를 사용할 수 있으므로, 현재 명령 결과는 컨테이너 관점이라는 점을 구분해야 합니다.
+- `EnvironmentCheck.java`를 Java 21로 컴파일하고 실행하여 `localhost/127.0.0.1` loopback 주소를 확인했습니다.
+- `nc` client/server와 `tcpdump`로 client `127.0.0.1:35166`과 server `127.0.0.1:45678` 사이의 TCP 연결을 캡처했습니다.
+- SYN, SYN-ACK, ACK와 `hello\n` 6 bytes의 payload 및 ACK를 식별했습니다.
+- client와 server의 FIN 및 마지막 ACK를 통해 양방향 연결 종료를 확인했습니다.
+- listening socket이 없는 port에 대한 SYN이 RST-ACK로 거절되는 것도 확인했습니다.
 
 ---
 
@@ -77,6 +85,12 @@ Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, sl
 - TCP handshake
 - EOF / FIN
 - 패킷 캡처
+
+### 다음 구체적인 작업
+
+- `ServerSocket`으로 `127.0.0.1`의 한 port에 bind하고 listening socket을 만듭니다.
+- `accept()` 전후의 socket 상태를 `ss`로 비교합니다.
+- 학습자가 connection 하나를 처리하는 echo 동작을 직접 구현합니다.
 
 ---
 

@@ -69,15 +69,42 @@ VS Code 왼쪽 아래에 `WSL: Ubuntu-24.04`와 같은 원격 표시가 나타�
 - `ss`는 WSL Linux kernel이 관리하는 socket을 보여 줍니다.
 - `sudo tcpdump -i lo`는 WSL loopback을 지나는 packet을 캡처합니다.
 
-## 다음 패킷 캡처 과제
+## Java 환경 확인
 
-환경 설치만으로 이 모듈이 완료되지는 않습니다. 다음 대화에서 작은 TCP 연결을 만들고 별도 터미널에서 캡처합니다.
+`EnvironmentCheck`는 Java가 제공하는 loopback 주소를 출력하는 가장 작은 환경 확인 코드입니다.
 
 ```bash
-sudo tcpdump -i lo -nn 'tcp port 8000'
+build_dir="$(mktemp -d)"
+javac -d "$build_dir" modules/00-environment/src/EnvironmentCheck.java
+java -cp "$build_dir" EnvironmentCheck
+rm -r "$build_dir"
 ```
 
-캡처에서 출발지/목적지 IP와 port, SYN, SYN-ACK, ACK를 식별합니다. 이 단계는 실제 관찰 결과를 기록하면서 진행합니다.
+확인한 출력은 `result: localhost/127.0.0.1`입니다. dev container에서 실행했으므로 이 주소는 Windows 전체나 WSL 배포판 전체가 아니라 현재 Java process가 속한 network namespace의 loopback을 가리킵니다.
+
+## TCP 관찰 결과
+
+OpenBSD `nc`로 `127.0.0.1:45678`에 listening socket을 만들고 다른 terminal에서 연결했습니다. client에는 ephemeral port `35166`이 할당되었습니다.
+
+```text
+127.0.0.1:35166 -> 127.0.0.1:45678 SYN
+127.0.0.1:45678 -> 127.0.0.1:35166 SYN-ACK
+127.0.0.1:35166 -> 127.0.0.1:45678 ACK
+```
+
+`hello`와 newline은 합계 6 bytes였고, TCP segment의 `length 6`과 다음 ACK에서 확인했습니다. client를 종료하자 양쪽에서 FIN을 보내고 마지막 ACK로 연결을 닫았습니다.
+
+listening socket이 없는 port에 연결한 경우에는 대상 OS가 RST-ACK를 보내 즉시 거절하는 동작도 관찰했습니다. VS Code/dev container의 port 자동 감지가 흔히 쓰는 port에 먼저 연결할 수 있으므로, 실습에서는 `ss -lntp`로 실제 socket과 process를 함께 확인합니다.
+
+## 패킷 캡처 명령
+
+작은 TCP 연결을 만들고 별도 terminal에서 loopback traffic을 캡처할 때 사용합니다.
+
+```bash
+sudo tcpdump -i lo -nn 'tcp port 45678'
+```
+
+캡처에서 출발지/목적지 IP와 port, SYN, SYN-ACK, ACK, payload, FIN을 식별합니다.
 
 ## 회고 질문
 
