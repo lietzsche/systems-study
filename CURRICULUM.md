@@ -1,502 +1,317 @@
-# 네트워크 학습 커리큘럼
+# 코드로 관찰하는 시스템 학습 커리큘럼
 
 ## 목표
 
-먼저 Java로 작은 모듈을 구현하고, 이후 일부 모듈을 TypeScript/Node.js와 Rust로 다시 구현하며 네트워크에 대한 탄탄하고 실용적인 이해를 쌓습니다.
+이 커리큘럼은 시스템 분야를 모두 직접 구현하려는 로드맵이 아닙니다. 코드로 재현할 때 특히 잘 보이는 문제를 골라 작은 baseline을 만들고, 실패를 주입하고, 관찰 결과에서 다음 설계가 필요한 이유를 발견합니다.
 
-OSI를 개념적 지도로 사용하되, 모든 주제를 실제 TCP/IP stack과 관찰 가능한 socket 동작에 연결합니다.
+각 실습의 기본 질문은 다음과 같습니다.
+
+> 이 abstraction은 어떤 실제 문제 때문에 필요해졌으며, 그 문제가 발생했다는 증거를 어떻게 관찰할 수 있는가?
+
+## 범위 선택 기준
+
+코드 실습은 다음 조건을 많이 만족할수록 우선합니다.
+
+- 100~300줄 정도로 핵심 현상을 재현할 수 있다.
+- 성공과 실패를 terminal, trace, file 또는 metric으로 확인할 수 있다.
+- 일부러 깨뜨린 뒤 원인을 추적할 수 있다.
+- API 암기보다 설계 이유와 trade-off가 드러난다.
+- 이후 module의 개념으로 자연스럽게 연결된다.
+
+Ethernet, routing, ARP, DNS internals, NAT, TLS 구현, TCP congestion control처럼 직접 구현 비용이 큰 주제는 필요할 때 책과 전문 도구로 학습합니다.
 
 ---
 
-## Phase 0 — 환경 및 관찰 도구
+# Phase 0 — 실험 환경과 관찰 방법
 
-### Module 00. 저장소 및 패킷 분석 환경 설정
+## Module 00. 재현 가능한 실험의 기준
 
-**목표**
-
-- 재현 가능한 학습 환경을 준비합니다.
-- Java 실행, 네트워크 유틸리티, 패킷 캡처 환경을 확인합니다.
+**핵심 질문:** 실행 결과를 어떻게 관찰하고 다시 재현할 것인가?
 
 **주제**
 
-- localhost와 외부 interface의 차이
-- loopback
-- port
-- `ss` / `netstat`
-- `curl`
-- `nc`
-- `ping`
-- `traceroute` / `tracert`
-- `tcpdump` 또는 Wireshark
+- process exit code, stdout, stderr
+- 임시 작업 directory와 생성물 분리
+- 고정 입력, seed, timeout
+- `ps`, `/proc`, `strace`, `lsof`, profiler의 역할
+- baseline과 failure scenario 기록 방법
 
-**OSI 초점**
-
-- L1-L7 개요
-- TCP/IP 모델과의 연결
-
-**결과물**
-
-- 간단한 환경 확인 기록
-- 최초로 캡처한 TCP connection
+**결과물:** 작은 environment probe와 실험 기록 template
 
 ---
 
-# Phase 1 — Java Blocking I/O로 배우는 TCP 기초
+# Phase 1 — Network가 아닌 I/O와 Stream 실험
 
-## Module 01. TCP Echo Server
+네트워크 전체를 구현하지 않습니다. socket code로 해야 특히 잘 드러나는 I/O 문제만 다룹니다.
 
-**목표**
+## Module 01. TCP stream과 message boundary
 
-socket, listen, connection accept, read, write, connection 종료를 이해합니다.
+**핵심 질문:** 두 번의 `write()`가 왜 두 번의 `read()`로 보장되지 않는가?
 
-**Java API**
+**baseline:** 여러 논리 message를 TCP connection 하나로 전송
 
-- `ServerSocket`
-- `Socket`
-- `InputStream`
-- `OutputStream`
+**failure:** message가 합쳐지거나 일부만 읽히는 조건 재현
 
-**주제**
+**개선:** length-prefixed framing과 incremental parser
 
-- IP address와 port
-- client/server
-- listening socket과 connected socket의 차이
-- TCP connection과 three-way handshake
-- FIN / EOF
-- RST 기초
+**관찰:** application log, buffer 크기 변화, `tcpdump` 보조 관찰
 
-**OSI 초점:** L4 TCP 및 L3 IP 관찰
+**기본 언어:** Node.js 또는 Java 중 더 간단한 쪽
 
-**패킷 과제:** handshake, payload, connection 종료 과정을 캡처합니다.
+## Module 02. Blocking과 concurrency model
 
----
+**핵심 질문:** 느린 client 하나가 다른 client를 왜 기다리게 하는가?
 
-## Module 02. TCP는 Byte Stream이다
+**baseline:** single-thread server
 
-**목표**
+**failure:** client A가 오래 점유하는 동안 client B의 응답 지연
 
-TCP가 애플리케이션 메시지의 경계를 보존한다는 오해를 없앱니다.
+**개선 순서:** thread per connection -> bounded thread pool
 
-**주제**
+**관찰:** latency, thread 수, queue 길이
 
-- stream semantics
-- partial read와 combined read
-- buffer와 message boundary
-- fragmentation과 application framing의 차이
+**기본 언어:** Java
 
-**실습:** 논리적 메시지 여러 개를 전송하고 `read()` 경계와 메시지 경계가 어떻게 달라지는지 관찰합니다.
+## Module 03. Backpressure와 bounded buffer
 
-**OSI 초점:** application message와 TCP stream의 차이
+**핵심 질문:** producer가 consumer보다 빠르면 초과 데이터는 어디에 쌓이는가?
 
----
+**baseline:** 제한 없는 생산과 느린 소비
 
-## Module 03. 애플리케이션 수준 Framing
+**failure:** memory 증가 또는 latency 누적
 
-**목표**
+**개선:** bounded queue, pause/resume 또는 demand 조절
 
-TCP 위에 작은 프로토콜을 설계합니다.
+**연결 개념:** TCP send/receive buffer, Node stream, Reactive Streams, Kafka consumer
 
-**프로토콜 예시**
-
-- delimiter 기반
-- fixed-length
-- length-prefixed
-
-**최종 권장 형식**
-
-```text
-[length][type][payload]
-```
-
-**주제**
-
-- framing
-- serialization 기초
-- byte order
-- parsing
-- malformed input
-
-**OSI 초점:** L4 TCP 위에 만든 L7 protocol
+**기본 언어:** Node.js 또는 Java
 
 ---
 
-## Module 04. 여러 Client와 Connection당 하나의 Thread
+# Phase 2 — OS Observation Lab
 
-**목표**
+## Module 04. Process와 system call
 
-blocking socket이 concurrency에 미치는 영향을 이해합니다.
+**핵심 질문:** program 실행과 process 생성은 어떤 OS 동작으로 보이는가?
 
-**주제**
+**실험:** parent/child PID, exit code, process tree 관찰
 
-- blocking `accept()`와 `read()`
-- client당 하나의 thread
-- thread 비용
-- shared state
-- 필요한 곳에만 적용하는 synchronization
+**도구:** `ps`, `/proc`, `strace`
 
-**OSI 초점:** 네트워크 계층은 같지만 server 실행 모델은 달라짐
+**기본 언어:** Python
 
----
+## Module 05. File descriptor와 I/O
 
-# Phase 2 — UDP와 Network Layer 이해
+**핵심 질문:** file과 socket이 Linux에서 같은 정수형 handle로 보이는 이유는 무엇인가?
 
-## Module 05. UDP Echo
+**실험:** `open`, `read`, `write`, `close`, stdin/stdout/stderr와 socket fd 비교
 
-**목표**
+**도구:** `strace`, `lsof`, `/proc/<pid>/fd`
 
-TCP stream과 UDP datagram을 비교합니다.
+**기본 언어:** Python
 
-**Java API:** `DatagramSocket`, `DatagramPacket`
+## Module 06. Signal과 process lifecycle
 
-**주제**
+**핵심 질문:** `SIGINT`, `SIGTERM`, `SIGKILL`은 종료 과정에서 무엇이 다른가?
 
-- connectionless communication
-- datagram boundary
-- loss, duplication, ordering
-- size constraint
+**실험:** handler, cleanup, exit status와 강제 종료 비교
 
-**OSI 초점:** L4 UDP
+**기본 언어:** Python
 
----
+## Module 07. `read()`와 `mmap()`
 
-## Module 06. IP, Routing, ICMP 관찰
+**핵심 질문:** 같은 file bytes를 읽는 두 방식은 address space와 system call 관점에서 어떻게 다른가?
 
-**목표**
+**실험:** access pattern과 file size를 바꾸며 syscall과 page fault 관찰
 
-IP stack을 직접 다시 구현하지 않고 TCP/UDP 아래에서 일어나는 일을 이해합니다.
-
-**주제**
-
-- IPv4 address
-- subnet mask / prefix
-- default gateway와 routing table
-- TTL과 ICMP
-- localhost, LAN, Internet routing의 차이
-
-**도구:** `ip addr`, `ip route`, `ping`, `traceroute`
-
-**OSI 초점:** L3
+**주의:** 단순 실행 시간을 근거로 일반적인 성능 우열을 결론 내리지 않습니다.
 
 ---
 
-## Module 07. Ethernet, MAC, ARP 관찰
+# Phase 3 — Storage Engine Lab
 
-**목표**
+이 단계부터는 Java를 기본 언어로 사용하되 언어 문법이 실험을 방해하면 조정합니다.
 
-IP 아래에서 이루어지는 local network 전송을 이해합니다.
+## Module 08. In-memory key-value store
 
-**주제**
+**핵심 질문:** 가장 단순한 `PUT`과 `GET`의 의미는 무엇인가?
 
-- frame과 MAC address
-- ARP와 broadcast
-- switch 기초
-- Ethernet과 Wi-Fi의 개념적 연결
+**baseline:** `Map<String, byte[]>`
 
-**도구:** `ip neigh` / `arp`, Wireshark/tcpdump
+**관찰:** overwrite, missing key, byte serialization
 
-**OSI 초점:** L2
+## Module 09. Append-only log
 
----
+**핵심 질문:** overwrite 없이 변경 사항을 file 끝에만 기록하면 무엇을 얻고 잃는가?
 
-# Phase 3 — 애플리케이션 프로토콜
+**실험:** 같은 key를 여러 번 기록하고 재시작 후 최신 값 찾기
 
-## Module 08. 순수 Java Socket으로 구현하는 HTTP/1.1
+**개념:** record format, offset, durability와 flush
 
-**목표**
+## Module 10. In-memory index와 compaction
 
-HTTP가 TCP로 운반되는 byte라는 사실을 이해합니다.
+**핵심 질문:** 전체 log scan을 피하려면 어떤 metadata가 필요한가?
 
-**제약:** Spring, embedded web server, Netty를 사용하지 않습니다.
+**개선:** key -> latest offset index
 
-**주제**
+**failure:** stale record와 file 크기 증가
 
-- request line, header, blank line, body
-- status line
-- `Content-Length`
-- connection reuse 기초
+**다음 설계:** compaction과 atomic replacement
 
-**실습:** 몇 개의 고정 endpoint를 제공할 수 있을 정도의 HTTP를 구현합니다.
+## Module 11. Torn record와 recovery
 
-**OSI 초점:** L4 TCP 위의 L7 HTTP
+**핵심 질문:** record 중간에서 process가 죽으면 다음 시작 때 어디까지 신뢰할 수 있는가?
 
----
+**failure:** truncated length 또는 payload를 의도적으로 생성
 
-## Module 09. 순수 Socket으로 구현하는 HTTP Client
+**개선:** length, checksum, valid-prefix recovery
 
-**목표**
+## Module 12. WAL과 crash boundary
 
-client 측에서 HTTP를 관찰합니다.
+**핵심 질문:** 성공 응답과 durable write 사이의 순서를 어떻게 정해야 하는가?
 
-**주제**
+**실험:** write, flush, state 적용 지점마다 crash 주입
 
-- DNS dependency
-- TCP connection establishment
-- request encoding과 response parsing
-- content length
-- chunked transfer encoding 개념
+**개념:** WAL, fsync, atomicity와 durability의 경계
 
 ---
 
-## Module 10. DNS Client
+# Phase 4 — Database Internals Lab
 
-**목표**
+## Module 13. Range query와 ordered index
 
-name resolution과 binary application protocol을 이해합니다.
+**핵심 질문:** equality lookup에 좋은 hash index가 range query에는 왜 부족한가?
 
-**주제**
+**비교:** linear scan, sorted array와 binary search, tree 기반 index
 
-- DNS hierarchy와 resolver
-- recursive query
-- UDP transport
-- query/response 구조
-- A / AAAA record
-- transaction ID
+**관찰:** 입력 크기와 query 분포에 따른 비교 횟수
 
-**실습:** 최소 DNS query를 만들거나, 선택한 field를 구현하기 전에 DNS query 하나를 깊이 분석합니다.
+## Module 14. Page와 B-Tree의 필요성
 
-**OSI 초점:** L4 UDP(경우에 따라 TCP) 위의 L7 DNS
+**핵심 질문:** disk/page 단위 I/O에서는 왜 넓고 낮은 tree가 유리한가?
 
----
+**실험:** 작은 page model에서 split과 lookup path 관찰
 
-# Phase 4 — TLS와 안전한 전송
+**주의:** production database 전체를 구현하지 않습니다.
 
-## Module 11. TLS의 위치와 Handshake 관찰
+## Module 15. Lost update
 
-**목표**
+**핵심 질문:** 각 transaction이 정상적으로 실행돼도 최종 값이 틀릴 수 있는 이유는 무엇인가?
 
-TLS가 어디에 위치하며 HTTPS가 HTTP-over-TCP에 무엇을 추가하는지 이해합니다.
+**failure:** 두 worker가 같은 값을 읽고 서로 다른 값을 저장
 
-**주제**
+**개선:** lock과 optimistic version check 비교
 
-- 먼저 TCP, 다음 TLS, 그 안에 HTTP
-- certificate와 server authentication
-- symmetric session key
-- handshake 개요
-- encrypted application data
+## Module 16. Isolation과 visibility
 
-**실습:** HTTP와 HTTPS packet trace를 비교합니다.
+**핵심 질문:** 동시에 실행되는 작업이 서로의 중간 상태를 어디까지 볼 수 있어야 하는가?
 
-**OSI 참고:** TLS는 전통적인 OSI presentation/session layer와 일부 개념이 겹치지만, 하나의 OSI 계층에 억지로 끼워 맞추지 않고 실제 현대 stack 안에서 이해합니다.
+**실험:** dirty read, non-repeatable read 또는 phantom 중 작은 사례 선택
 
----
+**개념:** isolation level과 concurrency trade-off
 
-## Module 12. Java API를 사용하는 TLS
+## Module 17. MVCC 최소 모델
 
-**목표**
+**핵심 질문:** reader와 writer를 무조건 서로 막지 않으려면 version을 어떻게 관리할 수 있는가?
 
-기반 TCP connection에 대한 이해를 유지하면서 Java TLS API를 사용합니다.
-
-**주제:** `SSLSocket`, trust store 기초, handshake timing, certificate inspection
+**실험:** snapshot visibility와 오래된 version 정리
 
 ---
 
-# Phase 5 — Non-Blocking I/O와 Multiplexing
+# Phase 5 — Distributed Failure Lab
 
-## Module 13. Java NIO 기초
+분산 알고리즘 전체보다, 부분 실패가 만드는 모호함을 작고 결정적으로 재현합니다.
 
-**목표**
+## Module 18. Timeout은 결과를 말해주지 않는다
 
-stream 기반 blocking API에서 channel과 buffer로 이동합니다.
+**핵심 질문:** client timeout은 server 작업 실패를 의미하는가?
 
-**Java API:** `ByteBuffer`, `SocketChannel`, `ServerSocketChannel`
+**failure:** server는 처리했지만 response를 잃는 상황
 
-**주제**
+**관찰:** client 결과와 server state의 불일치
 
-- buffer의 position/limit/capacity
-- flip/clear/compact
-- partial read/write
-- non-blocking mode
+## Module 19. Retry와 idempotency
 
----
+**핵심 질문:** 결과를 모르는 client가 retry하면 중복 side effect를 어떻게 막는가?
 
-## Module 14. Selector 기반 Server
+**failure:** 같은 payment command 두 번 처리
 
-**목표**
+**개선:** idempotency key, 결과 저장과 request identity
 
-readiness 기반 I/O multiplexing을 이해합니다.
+## Module 20. Replication의 부분 실패
 
-**Java API:** `Selector`, `SelectionKey`
+**핵심 질문:** primary write는 성공하고 replica 반영은 실패하면 어떤 값이 진짜인가?
 
-**주제**
+**실험:** 복제 단계 사이에 failure 주입
 
-- accept/read/write readiness
-- 하나의 thread로 여러 connection 관리
-- readiness model과 completion model의 차이
+**개념:** acknowledgement policy, consistency와 availability
 
-**개념 연결:** Java NIO를 epoll/kqueue 같은 OS 기능과 개념적으로 연결합니다.
+## Module 21. Leader와 quorum 최소 실험
 
----
+**핵심 질문:** 여러 node의 상태가 다를 때 누가 write를 결정할 수 있는가?
 
-## Module 15. Backpressure와 출력 Buffering
+**범위:** 작은 state machine과 결정 규칙만 구현
 
-**목표**
-
-producer가 consumer보다 빠를 때 어떤 일이 발생하는지 이해합니다.
-
-**주제**
-
-- socket send buffer
-- application output queue
-- partial write
-- 느린 client
-- memory growth
-- backpressure
+**주의:** 완전한 Raft 구현을 목표로 하지 않습니다.
 
 ---
 
-# Phase 6 — 네트워크 유틸리티와 Proxy
+# Phase 6 — Runtime / Concurrency 비교
 
-## Module 16. TCP Proxy
+동일한 I/O-bound workload를 여러 runtime에서 실행합니다. 이 단계에서만 다중 언어 구현을 적극적으로 사용합니다.
 
-**목표**
+## Module 22. 실험 workload와 측정 기준
 
-단순한 양방향 TCP proxy를 만들고 투명한 byte forwarding을 관찰합니다.
+**문제:** 다수 작업이 계산보다 대기에 대부분의 시간을 사용
 
-**주제:** 두 TCP connection, bidirectional copy, half-close, buffering, latency
+**측정:** wall time, throughput, thread 수, memory와 scheduling overhead
 
----
+## Module 23. Java execution model
 
-## Module 17. 최소 HTTP Proxy
+**비교:** platform thread, `ExecutorService`, virtual thread
 
-**목표**
+## Module 24. Node.js execution model
 
-application-layer intermediary와 순수 TCP proxy의 차이를 관찰합니다.
+**비교:** event loop, callback/Promise, libuv가 처리하는 I/O
 
-**주제:** HTTP request parsing, forwarding, Host header, connection handling
+## Module 25. Rust execution model
 
----
+**비교:** `std::thread`, `Future`, Tokio executor
 
-# Phase 7 — TypeScript / Node.js 비교
+## Module 26. Python execution model
 
-의미 있는 일부 모듈만 다시 구현합니다.
+**비교:** threading, multiprocessing, `asyncio`
 
-## Module 18. Node TCP Echo와 Custom Framing
+## Module 27. Cross-runtime 분석
 
-**목표**
+**핵심 질문:** 같은 source-level `await` 또는 blocking call이 각 runtime에서 어떤 실행 모델로 이어지는가?
 
-Java blocking socket과 Node event-driven socket을 비교합니다.
-
-**API:** `net.createServer`, `net.Socket`, `Buffer`
-
-**주제:** `data` event, stream, chunk boundary, event loop
+**결과물:** API 표가 아니라 scheduling, waiting과 resource cost 중심의 비교 기록
 
 ---
 
-## Module 19. Node Backpressure
+# 선택 심화
 
-**목표**
+## Track A. Compiler
 
-stream backpressure를 Java NIO에서 이미 배운 개념과 연결합니다.
+작은 expression language를 lexer, parser, AST, evaluator 순서로 구현합니다. 변수, scope, function 또는 bytecode VM은 관찰할 새 문제가 있을 때만 추가합니다. 기본 언어는 TypeScript입니다.
 
-**주제:** `write()` 반환값, `drain`, readable/writable stream, buffering
+## Track B. Performance
 
----
+같은 동작의 구현을 benchmark하고 profiler로 병목을 찾습니다. 측정 오류, warm-up, allocation, cache locality와 최적화 trade-off를 다룹니다. 기본 언어는 Java 또는 Rust입니다.
 
-## Module 20. Node TCP Proxy
+## Track C. ML/LLM Systems
 
-**목표**
-
-event-driven proxy 구현을 Java 구현과 비교합니다.
-
----
-
-# Phase 8 — Rust 비교
-
-Rust 문법이 네트워크 학습을 방해하지 않을 만큼 기초에 익숙해진 뒤 시작합니다.
-
-## Module 21. `std::net`을 사용하는 Rust TCP Echo
-
-**주제:** `TcpListener`, `TcpStream`, `Read` / `Write`, slice, buffer ownership, `Result`
-
-**비교**
-
-- Java `Socket` / `byte[]`
-- Node `net.Socket` / `Buffer`
-- Rust `TcpStream` / `&mut [u8]`
-
----
-
-## Module 22. Rust Framing Protocol
-
-length-prefixed protocol을 다시 구현하며 ownership, borrowing, parsing에 집중합니다.
-
----
-
-## Module 23. Rust Concurrent Server
-
-async보다 thread를 먼저 사용합니다.
-
----
-
-## Module 24. Rust Async Networking
-
-**사용 가능한 runtime:** Tokio
-
-**목표:** 이 단계에서 futures, async task, reactor 개념, readiness 기반 I/O를 Java NIO 및 Node.js와 연결합니다.
-
----
-
-# Phase 9 — 통합 및 복습
-
-## Module 25. 전체 Packet 흐름 추적
-
-하나의 request가 application에서 wire로 갔다가 돌아오는 과정을 설명합니다.
-
-권장 시나리오:
-
-```text
-Browser / custom client
--> DNS
--> TCP handshake
--> TLS handshake
--> HTTP request
--> HTTP response
--> TCP close 또는 reuse
-```
-
-각 단계에서 다음을 식별합니다.
-
-- application data
-- protocol header
-- TCP segment
-- IP packet
-- Ethernet/Wi-Fi frame
-- 담당 OS component
-- 관련 user-space API
-
----
-
-## Module 26. 언어 간 비교
-
-Java, Node.js, Rust를 최종 비교합니다.
-
-**비교 항목**
-
-- socket API와 buffer type
-- blocking model과 concurrency model
-- event-driven model
-- error handling과 resource lifetime
-- backpressure
-- framing 구현
-- TLS API
+NumPy로 matrix multiplication, softmax, embedding과 작은 attention을 구현하고 PyTorch 결과와 비교합니다. sequence length와 batch size 변화가 memory와 실행 시간에 미치는 영향을 관찰합니다. 기본 언어는 Python입니다.
 
 ---
 
 # 완료 기준
 
-학습자가 다음 질문에 답하고 직접 시연할 수 있으면 커리큘럼을 완료한 것입니다.
+전체 module을 모두 구현하는 것이 완료 조건은 아닙니다. 핵심 track을 진행한 뒤 학습자는 다음을 할 수 있어야 합니다.
 
-- socket이 정확히 무엇인가?
-- listening socket과 connected socket은 어떻게 다른가?
-- TCP는 왜 message protocol이 아니라 stream인가?
-- 한 번의 write가 여러 read로 수신되거나 여러 write가 한 번의 read로 수신될 수 있는 이유는 무엇인가?
-- application protocol에 framing이 필요한 이유는 무엇인가?
-- API와 transport 계층에서 UDP는 TCP와 어떻게 다른가?
-- TCP/UDP 아래에서 IP와 routing은 어떤 역할을 하는가?
-- LAN에서 Ethernet frame, MAC address, ARP는 무엇을 하는가?
-- HTTP는 wire에서 어떤 형태로 표현되는가?
-- TCP 및 HTTP를 기준으로 TLS는 어디에 위치하는가?
-- non-blocking I/O와 selector가 필요한 이유는 무엇인가?
-- backpressure란 무엇인가?
-- Java NIO, Node.js, Rust async networking은 개념적으로 어떻게 연결되는가?
-- packet trace에서 어떤 OSI/TCP-IP 계층을 볼 수 있으며 각 계층의 책임은 무엇인가?
+- 관찰 가능한 증거로 abstraction의 필요성을 설명한다.
+- partial read, blocked worker, unbounded buffer, partial write와 timeout 같은 실패를 재현한다.
+- index, recovery, WAL, transaction, idempotency와 replication의 trade-off를 설명한다.
+- application, runtime, OS와 외부 시스템의 책임을 구분한다.
+- 같은 문제에 적합한 언어와 관찰 도구를 선택하고 그 이유를 설명한다.

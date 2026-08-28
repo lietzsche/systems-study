@@ -1,122 +1,48 @@
-# 네트워크 학습 진행 상황
+# 시스템 학습 진행 상황
 
 ## 현재 상태
 
-**상태:** Module 00 완료 / Module 01 시작 준비
+**상태:** 새 커리큘럼 전환 완료 / Module 00 시작 준비
 
-**현재 단계:** Phase 1 — Java Blocking I/O로 배우는 TCP 기초
+**현재 단계:** Phase 0 — 실험 환경과 관찰 방법
 
-**현재 모듈:** Module 01 — TCP Echo Server
+**현재 모듈:** Module 00 — 재현 가능한 실험의 기준
 
-**주 구현 언어:** Java
-
-**추후 비교 언어:** TypeScript/Node.js, Rust 순서
-
----
-
-## Java로 시작하는 이유
-
-Rust 네트워크 실습은 기본 문법, 소유권, 빌림, trait, generic, slice, collection, `Result`에 충분히 익숙해져 언어 문법이 네트워크 개념의 이해를 방해하지 않을 때까지 미룹니다.
-
-따라서 당장은 익숙한 Java로 네트워크 학습을 시작합니다. 낯선 언어 문법과 씨름하지 않고 소켓, 버퍼, I/O, TCP/IP, 패킷 추적, 프로토콜 동작에 집중하기 위함입니다.
-
----
+**저장소 전환:** 기존 네트워크 구현 중심 과정에서 코드로 관찰할 가치가 높은 시스템 실험 과정으로 재설계
 
 ## 완료한 모듈
 
-- Module 00 — 저장소 및 패킷 분석 환경 설정
+아직 없음.
 
----
+기존 네트워크 환경 실습은 새 커리큘럼의 완료 이력으로 승계하지 않습니다. 필요한 도구 사용 경험은 이후 실험에서 다시 활용합니다.
 
-## 현재 모듈: 00
+## 현재 모듈의 핵심 질문
 
-### 학습 목표
+> 실행 결과를 어떻게 관찰하고 같은 조건에서 다시 재현할 것인가?
 
-저장소를 준비하고 현재 환경에서 다음 작업을 할 수 있는지 확인합니다.
+## 다음 작업
 
-- Java 코드를 컴파일하고 실행한다.
-- 로컬의 listening/connected socket을 확인한다.
-- `curl`이나 `nc` 같은 기본 네트워크 클라이언트를 사용한다.
-- Wireshark 또는 tcpdump로 트래픽을 캡처한다.
-- loopback 트래픽과 외부 인터페이스 트래픽을 구분한다.
+- [ ] 현재 dev container에서 사용할 수 있는 언어와 관찰 도구 확인
+- [ ] 실험용 임시 directory와 생성물 처리 규칙 확인
+- [ ] stdout, stderr와 exit code를 구분하는 작은 probe 실행
+- [ ] 같은 입력으로 성공과 실패를 반복 재현
+- [ ] 공통 실험 기록 형식을 첫 module README에 정리
 
-### 필수 작업
+## 아직 부족한 개념
 
-- [x] 저장소 및 Module 00 디렉터리 구조 생성
-- [x] WSL 2 / Ubuntu 24.04용 설치 및 환경 검증 스크립트 작성
-- [x] 실제 학습 환경에서 Java 21 컴파일 및 실행 확인
-- [x] Git 원격 저장소와 브랜치 확인
-- [x] `curl` 및 `nc` 사용 가능 여부 확인
-- [x] `ss`/`netstat` 사용 가능 여부 확인
-- [x] tcpdump 사용 가능 여부 확인
-- [x] 간단한 TCP 연결 하나 캡처
-- [x] 출발지 IP, 목적지 IP, 출발지 port, 목적지 port 식별
-- [x] 캡처에서 SYN, SYN-ACK, ACK 식별
-- [x] 아래에 관찰 결과 기록
-- [x] Module 00 완료 표시
-- [x] 완료한 모듈 커밋 및 push
+- process와 program의 구분
+- exit code와 signal 종료의 구분
+- system call과 language runtime API의 경계
+- 재현 가능한 failure injection 방법
 
-### 관찰 결과
+## 학습 재개 방법
 
-- `scripts/setup-ubuntu.sh`가 OpenJDK 21과 기본 네트워크 관찰 도구를 설치하도록 준비했습니다.
-- `scripts/verify-environment.sh`가 WSL 2, Ubuntu 24.04, Java 21, 필수 명령, interface와 route를 검사하도록 준비했습니다.
-- dev container에서 OpenJDK 21.0.12와 필수 네트워크 명령이 모두 확인되었습니다.
-- 현재 관찰된 interface는 loopback `lo`와 컨테이너 Ethernet interface `eth0`이며, `eth0`의 IPv4 주소는 `172.17.0.2/16`입니다.
-- default route는 `eth0`을 통해 gateway `172.17.0.1`로 향합니다.
-- WSL 2 커널을 공유하더라도 dev container는 별도의 network namespace를 사용할 수 있으므로, 현재 명령 결과는 컨테이너 관점이라는 점을 구분해야 합니다.
-- `EnvironmentCheck.java`를 Java 21로 컴파일하고 실행하여 `localhost/127.0.0.1` loopback 주소를 확인했습니다.
-- `nc` client/server와 `tcpdump`로 client `127.0.0.1:35166`과 server `127.0.0.1:45678` 사이의 TCP 연결을 캡처했습니다.
-- SYN, SYN-ACK, ACK와 `hello\n` 6 bytes의 payload 및 ACK를 식별했습니다.
-- client와 server의 FIN 및 마지막 ACK를 통해 양방향 연결 종료를 확인했습니다.
-- listening socket이 없는 port에 대한 SYN이 RST-ACK로 거절되는 것도 확인했습니다.
+학습자는 문서를 먼저 읽을 필요 없이 Codex에게 학습을 시작하거나 계속해 달라고 요청하면 됩니다. 에이전트가 현재 module을 확인하고 한 번에 필요한 개념, 예측 질문, 실행 또는 구현 과제를 제시합니다.
 
----
+## 저장소 관리 상태
 
-## 다음 모듈
-
-**Module 01 — TCP Echo Server**
-
-주요 학습 내용:
-
-- `ServerSocket`
-- `Socket`
-- `accept()`
-- `read()` / `write()`
-- TCP handshake
-- EOF / FIN
-- 패킷 캡처
-
-### 다음 구체적인 작업
-
-- `ServerSocket`으로 `127.0.0.1`의 한 port에 bind하고 listening socket을 만듭니다.
-- `accept()` 전후의 socket 상태를 `ss`로 비교합니다.
-- 학습자가 connection 하나를 처리하는 echo 동작을 직접 구현합니다.
-
----
-
-## 주의 깊게 볼 개념
-
-프로젝트 전반에서 중요하게 다룰 개념입니다.
-
-- socket과 connection의 차이
-- port와 socket의 차이
-- application message와 TCP stream의 차이
-- buffer 내용과 protocol boundary의 차이
-- blocking과 non-blocking의 차이
-- OS socket buffer와 application buffer의 차이
-- packet, TCP segment, Ethernet frame의 차이
-- runtime 동작과 network 동작의 차이
-
----
-
-## 학습 재개 체크리스트
-
-학습자는 Codex에게 학습을 계속 진행해 달라고 요청하면 됩니다. 다음 항목은 Codex가 확인하고 수행합니다.
-
-1. `AGENTS.md`를 읽는다.
-2. `CURRICULUM.md`에서 관련 부분을 읽는다.
-3. 이 파일에서 현재 모듈을 확인한다.
-4. 파일을 수정하기 전에 `git status`를 확인한다.
-5. 커리큘럼 변경을 명시적으로 요청받지 않았다면 현재 모듈만 계속 진행한다.
-6. 학습자에게 다음 개념 또는 과제를 대화로 제시한다.
-7. 모듈을 마치면 commit/push 전에 이 파일을 갱신한다.
+- 새 커리큘럼 전환 완료
+- 기존 네트워크 전용 module과 설치 script 제거 완료
+- dev container와 Dependabot 설정 유지
+- 저장소 remote 이름은 사용자가 별도로 `systems-study`로 변경 예정
+- 전환 commit 검증 및 push 완료

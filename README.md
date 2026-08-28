@@ -1,69 +1,73 @@
-# 네트워크 학습 프로젝트
+# Systems Study
 
-애플리케이션 코드에서 네트워크로, 그리고 다시 애플리케이션으로 데이터가 이동하는 과정을 이해하기 위한 실습 중심의 네트워크 학습 저장소입니다.
+코드로 재현할 때 특히 잘 보이는 시스템 개념을 작은 실험으로 학습하는 저장소입니다.
 
-Java로 학습을 시작한 뒤, 일부 주제를 TypeScript/Node.js와 Rust로 다시 구현하며 비교합니다.
+목표는 여러 분야의 production application을 완성하거나 특정 언어의 API를 암기하는 것이 아닙니다. 정상적인 baseline을 만든 뒤 의도적으로 실패시키고, terminal 출력, system call, process 상태, file 내용과 metric을 관찰하여 다음 abstraction이 왜 필요한지 이해합니다.
 
-## 학습하는 방법
+## 학습 기준
 
-이 프로젝트는 문서를 순서대로 혼자 읽는 교재가 아니라, Codex와 대화하며 진행하는 실습 과정입니다. 학습자는 현재 위치를 찾거나 문서와 노트를 직접 관리할 필요가 없습니다.
+다음 질문을 기준으로 실습 범위를 정합니다.
 
-학습을 시작하거나 재개할 때 Codex에게 계속 진행해 달라고 말하면 됩니다. Codex가 현재 진행 상황을 확인하고 개념 설명과 다음 과제를 한 번에 필요한 만큼 제시합니다. 학습자는 안내받은 핵심 코드를 직접 구현하고 실행 결과나 질문을 대화로 전달합니다.
+> 이 개념은 코드로 직접 재현할 때 책이나 기존 도구만 사용하는 것보다 더 잘 보이는가?
 
-모듈 README와 `PROGRESS.md` 정리, 검증, commit, push는 Codex가 담당합니다. 이 저장소의 문서는 학습자에게 부과되는 읽기 과제가 아니라, 학습 기록과 대화의 연속성을 보존하기 위한 자료입니다.
+좋은 실습은 대체로 다음 성질을 가집니다.
 
-## 처음 시작하기
+- 작은 코드로 현상을 재현할 수 있습니다.
+- 결과와 실패가 눈에 보입니다.
+- 원인을 추적할 관찰 수단이 있습니다.
+- 문제를 겪은 뒤 설계가 필요한 이유가 드러납니다.
+- framework 설정과 API 암기가 중심이 아닙니다.
 
-기준 학습 환경은 WSL 2의 Ubuntu 24.04와 OpenJDK 21입니다. WSL Ubuntu에서 다음 명령으로 필요한 Java 및 네트워크 관찰 도구를 설치하고 검증할 수 있습니다.
+직접 구현의 가치가 낮은 주제는 책, 공식 문서, Wireshark, `strace`, profiler 같은 더 적합한 수단을 사용합니다.
 
-```bash
-./scripts/setup-ubuntu.sh
-./scripts/verify-environment.sh
-```
-
-WSL 설치부터 VS Code 연결까지의 안내와 설치 도구 목록은 `modules/00-environment/README.md`에 기록되어 있습니다.
-
-## 이 저장소를 만든 이유
-
-고수준 프레임워크를 사용하면 네트워크 프로그래밍을 효율적으로 할 수 있지만, 중요한 세부 동작이 가려지기도 합니다. 이 프로젝트는 소켓과 바이트에 가까운 수준에서 시작하여 TCP 스트림, 프레이밍, UDP 데이터그램, HTTP, DNS, TLS, 논블로킹 I/O, 백프레셔를 직접 관찰하는 것을 목표로 합니다.
-
-네트워크 스택 전체를 직접 구현하려는 프로젝트는 아닙니다. 다음 요소 사이의 실제 경계를 이해하는 것이 목표입니다.
-
-- 애플리케이션 프로토콜
-- 소켓 API
-- 런타임 동작
-- 운영체제 네트워킹
-- TCP/UDP
-- IP
-- Ethernet/Wi-Fi
-
-## 학습 순서
-
-전체 학습 흐름은 다음과 같습니다.
+## 학습 영역
 
 ```text
-Java 블로킹 소켓
--> TCP 프레이밍
--> UDP
--> IP / Ethernet 관찰
--> HTTP / DNS
--> TLS
--> Java NIO / Selector
--> 백프레셔 / 프록시
--> Node.js 비교
--> Rust 비교
--> 전체 흐름 복습
+실험 환경과 관찰 방법
+-> I/O, TCP stream, framing과 backpressure
+-> process, file descriptor, signal과 mmap
+-> append-only log, index, recovery와 WAL
+-> database index, transaction, isolation과 MVCC
+-> timeout, retry, idempotency와 replication failure
+-> Java, Node.js, Rust, Python runtime 비교
 ```
 
-상세 로드맵은 `CURRICULUM.md`에 기록되어 있으며 Codex가 학습 순서를 관리합니다.
+Compiler, Performance, ML/LLM Systems는 선택 심화 track으로 둡니다.
 
-현재 학습 위치는 `PROGRESS.md`에 기록되며 Codex가 갱신합니다.
+상세한 module 순서와 질문은 `CURRICULUM.md`에 기록합니다. 현재 위치와 실제 관찰 결과는 `PROGRESS.md`에서 에이전트가 관리합니다.
 
-Codex/에이전트의 작업 방식과 저장소 규칙은 `AGENTS.md`를 참고하세요.
+## 진행 방식
+
+이 저장소는 문서를 혼자 순서대로 읽는 교재가 아니라 Codex와 대화하며 진행하는 실험 과정입니다.
+
+1. 에이전트가 현재 위치와 핵심 질문을 확인합니다.
+2. baseline과 실행 전 예상 결과를 제시합니다.
+3. 학습자가 핵심 코드를 작성하거나 실험을 실행합니다.
+4. 실패를 의도적으로 만들고 관찰 결과를 비교합니다.
+5. 왜 다음 설계가 필요한지 설명한 뒤 최소한으로 개선합니다.
+6. 에이전트가 module 기록, 검증, commit과 push를 담당합니다.
+
+새 언어나 API를 처음 사용할 때는 에이전트가 실행 가능한 최소 문법과 boilerplate를 먼저 제공합니다. 학습자가 직접 작성하는 부분은 현재 시스템 개념을 드러내는 핵심 로직으로 제한합니다.
+
+## 언어 선택
+
+하나의 언어를 모든 문제에 강제하지 않습니다.
+
+| 영역 | 기본 언어 | 선택 이유 |
+| --- | --- | --- |
+| Network/I/O | Node.js 또는 Java | stream, blocking과 concurrency 관찰 |
+| OS | Python | OS API와 system call을 적은 코드로 연결 |
+| Storage/Database | Java | file format, index와 concurrency를 명시적으로 구현 |
+| Distributed failure | Java 또는 Python | failure injection과 state 관찰 |
+| Runtime 비교 | Java, Node.js, Rust, Python | 실행 모델 자체가 비교 대상 |
+| Compiler | TypeScript | 작은 AST와 parser 표현이 간결함 |
+| ML/LLM | Python | NumPy/PyTorch와 수학적 연산 연결 |
+
+언어는 기본값일 뿐이며, 문법 학습 비용이 핵심 개념을 가리면 더 적합한 언어로 바꿉니다.
 
 ## 저장소 구조
 
-권장 구조는 다음과 같습니다.
+모듈은 작고 독립적인 실험으로 만듭니다.
 
 ```text
 .
@@ -71,55 +75,15 @@ Codex/에이전트의 작업 방식과 저장소 규칙은 `AGENTS.md`를 참고
 ├── CURRICULUM.md
 ├── PROGRESS.md
 ├── README.md
-└── modules/
-    ├── 00-environment/
-    ├── 01-tcp-echo/
-    ├── 02-tcp-stream/
-    ├── 03-tcp-framing/
+└── labs/
+    ├── 00-experiment-basics/
+    ├── 01-io-stream-framing/
+    ├── 02-blocking-concurrency/
     └── ...
 ```
 
-각 모듈은 작고 독립적으로 이해할 수 있어야 하며, 하나의 명확한 네트워크 개념에 연결되어야 합니다.
+각 module은 핵심 질문, baseline, failure scenario, 실행 명령, 관찰 결과와 설계 변화를 기록합니다. module 사이에 불필요한 code dependency를 만들지 않습니다.
 
-## 핵심 원칙
+## 현재 상태
 
-모든 실습에서는 다음 질문에 반복해서 답해야 합니다.
-
-> 이 애플리케이션 코드 한 줄로 인해 런타임, 운영체제, 네트워크 스택에서는 어떤 일이 일어나는가?
-
-이 프로젝트는 OSI를 개념적 지도로 사용하면서, 실제 시스템에서 사용하는 TCP/IP 모델도 함께 강조합니다.
-
-## 언어별 학습 전략
-
-### Java
-
-Java는 새로운 프로그래밍 언어까지 동시에 익히지 않고도 소켓과 버퍼의 동작을 명확하게 살펴볼 수 있으므로 주 학습 언어로 사용합니다.
-
-초기 모듈에서는 Spring, Netty 등의 네트워크 프레임워크를 사용하지 않습니다.
-
-### TypeScript / Node.js
-
-일부 모듈을 다시 구현하며 다음을 학습합니다.
-
-- 이벤트 기반 소켓
-- 스트림
-- `Buffer`
-- 이벤트 루프
-- 백프레셔
-
-### Rust
-
-Rust는 기본 문법과 소유권 모델에 충분히 익숙해져 네트워킹 자체에 집중할 수 있게 된 뒤 학습합니다.
-
-Rust 단계에서는 비동기 런타임보다 `std::net`을 먼저 사용합니다.
-
-## 모듈 완료 조건
-
-다음 조건을 만족하면 모듈이 완료된 것으로 간주합니다.
-
-- 학습 목표를 코드나 관찰로 확인했다.
-- 관련 코드가 정상적으로 실행된다.
-- 필요한 경우 패킷 관찰을 완료했다.
-- Codex가 학습 노트를 갱신했다.
-- Codex가 `PROGRESS.md`를 갱신했다.
-- `AGENTS.md`의 규칙에 따라 모듈을 커밋하고 push했다.
+기존 네트워크 구현 중심 커리큘럼을 종료하고 새 시스템 실험 커리큘럼으로 처음부터 시작합니다. 개발 컨테이너 설정은 유지하며, 저장소 remote 이름 변경은 별도로 진행합니다.
