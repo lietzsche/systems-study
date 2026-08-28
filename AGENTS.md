@@ -151,16 +151,18 @@ OSI 7개 계층을 모두 억지로 구현하지 않습니다. 특히 5계층과
 
 가능하면 완료한 모듈 하나마다 하나의 논리적인 commit을 사용합니다.
 
+commit message의 제목과 본문은 한글로 작성합니다. API 이름, protocol 이름, file 이름처럼 번역하면 의미가 흐려지는 기술 식별자는 원문 표기를 유지할 수 있습니다.
+
 권장 commit 형식:
 
 ```text
-learn(network): complete module 01 tcp echo
+학습(네트워크): 모듈 01 TCP 에코 완료
 ```
 
 또는
 
 ```text
-learn(network): complete module 07 java nio selector
+학습(네트워크): 모듈 07 Java NIO Selector 완료
 ```
 
 commit 후 현재 branch를 설정된 remote에 push합니다.
