@@ -23,12 +23,11 @@
 ## 학습 영역
 
 ```text
-실험 환경과 관찰 방법
--> I/O, TCP stream, framing과 backpressure
--> process, file descriptor, signal과 mmap
+file descriptor, process, signal과 mmap
 -> append-only log, index, recovery와 WAL
 -> database index, transaction, isolation과 MVCC
 -> timeout, retry, idempotency와 replication failure
+-> I/O, TCP stream, framing과 backpressure
 -> Java, Node.js, Rust, Python runtime 비교
 ```
 
@@ -53,14 +52,14 @@ Node.js와 Rust toolchain은 처음 사용하는 phase에서 version을 정해 �
 
 이 저장소는 문서를 혼자 순서대로 읽는 교재가 아니라 Codex와 대화하며 진행하는 실험 과정입니다.
 
-1. 에이전트가 현재 위치와 핵심 질문을 확인합니다.
-2. baseline과 실행 전 예상 결과를 제시합니다.
-3. 학습자가 핵심 코드를 작성하거나 실험을 실행합니다.
-4. 실패를 의도적으로 만들고 관찰 결과를 비교합니다.
-5. 왜 다음 설계가 필요한지 설명한 뒤 최소한으로 개선합니다.
-6. 에이전트가 module 기록, 검증, commit과 push를 담당합니다.
+1. 에이전트가 문제 상황과 관련 시스템 개념을 먼저 설명합니다.
+2. 학습자와 mental model 및 가능한 설계를 함께 추론합니다.
+3. 코드가 이해를 실제로 돕는지 판단합니다.
+4. 필요한 경우에만 최소 코드를 구현하고 관찰 가능한 증거와 연결합니다.
+5. failure를 통해 기존 설계의 한계를 확인하고 개선의 trade-off를 논의합니다.
+6. 에이전트가 module 기록, boilerplate, 검증, commit과 push를 담당합니다.
 
-새 언어나 API를 처음 사용할 때는 에이전트가 실행 가능한 최소 문법과 boilerplate를 먼저 제공합니다. 학습자가 직접 작성하는 부분은 현재 시스템 개념을 드러내는 핵심 로직으로 제한합니다.
+명령을 복사하고 결과를 제출하는 과정을 반복하지 않습니다. 실행 전 예측은 오해를 확인할 가치가 있을 때만 사용합니다. 새 언어나 API를 처음 사용할 때는 에이전트가 실행 가능한 최소 문법과 boilerplate를 제공하고, 학습자가 직접 작성하는 부분은 현재 시스템 개념을 드러내는 핵심 로직으로 제한합니다.
 
 ## 언어 선택
 
@@ -89,9 +88,10 @@ Node.js와 Rust toolchain은 처음 사용하는 phase에서 version을 정해 �
 ├── PROGRESS.md
 ├── README.md
 └── labs/
-    ├── 00-experiment-basics/
-    ├── 01-io-stream-framing/
-    ├── 02-blocking-concurrency/
+    ├── 00-os-file-descriptor/
+    ├── 01-os-process-signal/
+    ├── 02-os-mmap/
+    ├── 03-storage-in-memory/
     └── ...
 ```
 
@@ -99,4 +99,4 @@ Node.js와 Rust toolchain은 처음 사용하는 phase에서 version을 정해 �
 
 ## 현재 상태
 
-기존 네트워크 구현 중심 커리큘럼을 종료하고 새 시스템 실험 커리큘럼으로 처음부터 시작합니다. 개발 컨테이너 설정은 유지하며, 저장소 remote 이름 변경은 별도로 진행합니다.
+기존 네트워크 구현 중심 커리큘럼을 종료하고 개념 설명과 설계 추론을 우선하는 시스템 학습 과정으로 처음부터 시작합니다. 첫 주제는 OS의 file descriptor이며, 이후 Storage Engine으로 이어집니다.

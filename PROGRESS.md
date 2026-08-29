@@ -2,50 +2,53 @@
 
 ## 현재 상태
 
-**상태:** 새 커리큘럼 전환 완료 / Module 00 시작 준비
+**상태:** Module 00 시작 준비
 
-**현재 단계:** Phase 0 — 실험 환경과 관찰 방법
+**현재 단계:** Phase 0 — OS Mental Model
 
-**현재 모듈:** Module 00 — 재현 가능한 실험의 기준
-
-**저장소 전환:** 기존 네트워크 구현 중심 과정에서 코드로 관찰할 가치가 높은 시스템 실험 과정으로 재설계
+**현재 모듈:** Module 00 — File descriptor와 system call
 
 ## 완료한 모듈
 
 아직 없음.
 
-기존 네트워크 환경 실습은 새 커리큘럼의 완료 이력으로 승계하지 않습니다. 필요한 도구 사용 경험은 이후 실험에서 다시 활용합니다.
+이전에 실행한 환경 확인과 stdout/stderr 실험은 준비 과정으로만 취급하며 정식 모듈 완료 이력에 포함하지 않습니다.
 
-## 현재 모듈의 핵심 질문
+## 현재 핵심 질문
 
-> 실행 결과를 어떻게 관찰하고 같은 조건에서 다시 재현할 것인가?
+> Linux는 file, terminal, pipe와 socket처럼 다른 대상을 왜 정수형 file descriptor로 다룰 수 있는가?
 
-## 다음 작업
+## 다음 대화의 흐름
 
-- [ ] 현재 dev container에서 사용할 수 있는 언어와 관찰 도구 확인
-- [ ] 실험용 임시 directory와 생성물 처리 규칙 확인
-- [ ] stdout, stderr와 exit code를 구분하는 작은 probe 실행
-- [ ] 같은 입력으로 성공과 실패를 반복 재현
-- [ ] 공통 실험 기록 형식을 첫 module README에 정리
+1. program, process, user space와 kernel의 관계를 개념적으로 설명합니다.
+2. process별 file descriptor table이라는 mental model을 함께 구성합니다.
+3. fd가 file 자체인지, process 내부의 참조 번호인지 사례로 추론합니다.
+4. 이해를 확인할 가치가 있을 때만 짧은 Python process를 실행합니다.
+5. 같은 대상을 `/proc/<pid>/fd`, `lsof`, `strace`에서 연결해 봅니다.
 
-## 아직 부족한 개념
+명령 실행이나 결과 제출 자체를 학습 목표로 삼지 않습니다.
 
-- process와 program의 구분
-- exit code와 signal 종료의 구분
-- system call과 language runtime API의 경계
-- 재현 가능한 failure injection 방법
+## 현재 환경
+
+- Ubuntu 24.04.4 LTS dev container
+- OpenJDK 21.0.12
+- Python 3.12.3
+- `gcc`, `strace`, `lsof`, `ps`, `ss`, `tcpdump` 사용 가능
+- Node.js와 Rust는 사용하는 phase에서 version을 정해 설치
+
+## 아직 다루지 않은 개념
+
+- process별 file descriptor table
+- user space의 runtime API와 system call 경계
+- open file description과 file offset 공유
+- file, pipe와 socket에 공통 I/O interface를 적용하는 방식
 
 ## 학습 재개 방법
 
-학습자는 문서를 먼저 읽을 필요 없이 Codex에게 학습을 시작하거나 계속해 달라고 요청하면 됩니다. 에이전트가 현재 module을 확인하고 한 번에 필요한 개념, 예측 질문, 실행 또는 구현 과제를 제시합니다.
+학습자는 문서를 먼저 읽을 필요 없이 Codex에게 계속 진행해 달라고 요청하면 됩니다. 에이전트가 개념을 먼저 설명하고 함께 추론한 뒤, 코드가 이해를 실제로 돕는 경우에만 최소 실험을 제안합니다.
 
 ## 저장소 관리 상태
 
-- 새 커리큘럼 전환 완료
-- 기존 네트워크 전용 module 제거 완료
-- 새 시스템 커리큘럼용 Ubuntu 설치·검증 script 구성
-- dev container의 `postCreateCommand`에 환경 설치와 검증 연결
-- Dependabot 설정 유지
-- 저장소 remote 이름은 사용자가 별도로 `systems-study`로 변경 예정
-- 전환 commit 검증 및 push 완료
-- 환경 설치·검증 script 실행 및 dev container 연동 검증 완료
+- 시스템 실험 커리큘럼 전환 완료
+- Ubuntu 설치·검증 script와 dev container 자동 구성 완료
+- 개념 우선 학습 방식으로 문서 조정 완료
